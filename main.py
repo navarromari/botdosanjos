@@ -1,29 +1,35 @@
+import base64
 import gspread
-from twitter import *
+import tweepy
 
-# Authentication process
-all_keys = open('twitterkeys', 'r').read().splitlines()
+def post_tweet(event, context):
 
-consumer_key = all_keys[0]
-consumer_secret = all_keys[1]
-token = all_keys[2]
-token_secret = all_keys[3]
+    # Authentication process
+    all_keys = open('twitterkeys', 'r').read().splitlines()
 
-gc = gspread.service_account('credentials.json')
-t = Twitter(
-    auth=OAuth(token, token_secret, consumer_key, consumer_secret))
+    consumer_key = all_keys[0]
+    consumer_secret = all_keys[1]
+    token = all_keys[2]
+    token_secret = all_keys[3]
+    bearer_token = all_keys[4]  
 
-# Open a sheet from a spreadsheet in one go
-wks = gc.open("augusto-dos-anjos-bot").sheet1
+    client = tweepy.client(bearer_token, consumer_key, consumer_secret, token, token_secret)
+    auth = tweepy.OAuth1UserHandler(consumer_key, consumer_secret, token, token_secret)
+    api = tweepy.API(auth)
 
-#set next tweet as the first cell of "tweets" column
-next_tweet = wks.acell('A2').value
+    gc = gspread.service_account('credentials.json')
 
-#add the current tweet to the end of the "tweets" column (creating a loop)
-wks.append_row([next_tweet])
+    # Open a sheet from a spreadsheet in one go
+    wks = gc.open("augusto-dos-anjos-bot").sheet1
 
-#post tweet through twitter API
-t.statuses.update(status=next_tweet)
+    #set next tweet as the first cell of "tweets" column
+    next_tweet = wks.acell('A2').value
 
-#delete the row we just tweeted
-wks.delete_rows(2)
+    #add the current tweet to the end of the "tweets" column (creating a loop)
+    wks.append_row([next_tweet])
+
+    #post tweet through twitter API
+    client.create_tweet(text = next_tweet)
+
+    #delete the row we just tweeted
+    wks.delete_rows(2)
